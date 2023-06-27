@@ -1,0 +1,82 @@
+% This must be in the first 5 lines to tell arXiv to use pdfLaTeX, which is strongly recommended.
+\pdfoutput=1
+% In particular, the hyperref package requires pdfLaTeX in order to break URLs across lines.
+
+\documentclass[11pt]{article}
+
+% Remove the "review" option to generate the final version.
+\usepackage[]{main}
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+
+% For proper rendering and hyphenation of words containing Latin characters (including in bib files)
+\usepackage[T1]{fontenc}
+% For Vietnamese characters
+% \usepackage[T5]{fontenc}
+% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
+
+% This assumes your files are encoded as UTF8
+\usepackage[utf8]{inputenc}
+\usepackage{flushend}
+% This is not strictly necessary, and may be commented out,
+% but it will improve the layout of the manuscript,
+% and will typically save some space.
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{float}
+% If the title and author information does not fit in the area allocated, uncomment the following
+%
+\setlength\titlebox{3cm}
+\usepackage{graphicx}
+\graphicspath{{./img/}}
+%
+% and set <dim> to something 5cm or larger.
+\title{Low-Power Contest Project Report, Group 27\\Synthesis and Optimization of Digital Systems\\June 2023}
+
+\author{Nicolas Abril \\ S313391 \And  
+        Pouyan Asgari \\ S289607 \And
+        Andrés Zambrano \\ S311270}
+
+\begin{document}
+
+\maketitle
+
+\section{Explanation of the algorithm}
+
+We used a greedy statistical approach for selecting which cells to swap.
+
+We start by changing all cells to HVT, which reduces power to the minimum possible, but also makes many cells violate timing constraints.
+To fix this we switch the most critical cells back to LVT in batches.  
+Having all the cells start in HVT means that the moment that the timing constraints are met we can stop.
+
+The criteria for selecting which cells to swap in each iteration is based on the average slack of the most critical path of each HVT cell.
+If a cell has a slack lower than the average plus some margin then it is swapped to its LVT version.
+
+After some tests we noticed that the slowest part was calculating the slacks for all cells, especially at the beginning when most of the cells are HVT and so we need to find the slack for too many paths.
+This is why we decided to go with the average, the number of swapped cells starts large and then tapers to avoid overshooting and swapping cells that we didn't need to.
+Overall, we want to swap as few cells as possible back to LVT to reach a minimal leakage value, but also calculate as few slacks as possible since that increases the run time.
+
+The margin added to the average slack comes to control what is the percentile of cells that we're swapping. Although we don't know the shape of the distribution of the slacks, by adding a fraction of the standard deviation we can select a larger or smaller percentage of cells to be swapped at each step.  
+The values that worked reasonably well in all circuits was average plus 30\% of standard deviation on the first iterations, while the average slack is negative and we still need to swap many cells, and average - 70\% of standard deviation when the average slack is positive.
+
+\section{Pseudocode}
+
+\begin{verbatim}
+  dualVth (slackThreshold, maxFanoutEndpointCost):
+  swap all cells to HVT
+  while timing constraints are not met:
+    get list of HVT cells
+    get slack of most critical path of each cell
+    get average and standard deviation of those slacks
+    if average slack < 0:
+      set margin to +0.3*standard deviation
+    else:
+      set margin to -0.7*standard deviation
+    for each hvt cell:
+      if cell slack < (average slack + margin):
+        swap cell back to LVT
+\end{verbatim}
+
+\end{document}

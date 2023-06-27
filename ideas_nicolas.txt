@@ -1,0 +1,57 @@
+sort cells by (leakage reduced)/(slack increased)  (most powerful reductions first)
+do binary search:
+    swap lower half
+    check constraints
+    if met:
+        repeat for upper half
+    else:
+        undo
+        repeat for lower half
+until half is empty
+
+But this doesnt take into account cells that are in the same path
+
+
+Doing the opposite:
+
+start with all hvt
+swap least powerful reductions back to lvt
+check constraints
+if met:
+    swap half less
+else:
+    swap half more
+
+
+
+To avoid doing calculations that are too long:
+    calculate score at start of each iteration
+    if score increased instead of decreasing, stop
+possibly add some momentum:
+    fixed number of bad iterations
+    fixed total number of bad iterations
+    stop on iteration too bad (score increase > threshold)
+    stop on total bad iterations (total score increase > threshold)
+    stop on recent bad iterations (rolling sum of score change, cliped at positives > threshold)
+
+
+constraints:
+    all slacks > 0
+    fanout_endpoint_cost
+    (copy from pt_contest)
+
+
+instead of binary search, we can try to calculate how many cells are expected to be swappable and try that value
+
+can repeat multiple passes of the binary search, trying different cell costs
+
+Check what is the relative cost of getting cell cost each iteration compared to total iteration time
+
+
+set worst_slack [get_attribute $cells slack]  -- to get slack of worst paths of group of cells
+set hvt_cells [get_cells -filter "lib_cell.threshold_voltage_group == HVT"]  -- to have a list of hvt cells
+foreach_in_collection cell [get_cells]  -- to iterate over each cell
+update_timing -full  -- updates timing information with last changes
+
+
+
